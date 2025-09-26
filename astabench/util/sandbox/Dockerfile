@@ -1,5 +1,10 @@
 FROM python:3.11-bookworm
 
+# Install uv
+RUN curl -fsSL https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+
 # ds1000 is a pretty hefty install and should never change since it's
 # a third-party eval, so let's do that first
 COPY ds1000_requirements.txt .

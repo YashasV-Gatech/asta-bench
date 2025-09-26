@@ -5,7 +5,10 @@ PYTEST_ARGS ?=
 
 ASTABENCH_TAG    := astabench
 CONTAINER_NAME   := astabench-container
-DOCKER_SOCKET_PATH ?= $(if $(XDG_RUNTIME_DIR),$(XDG_RUNTIME_DIR)/docker.sock,/var/run/docker.sock)
+
+# Robustly detect Docker socket path using docker context inspect
+HOST_DOCKER_SOCKET_PATH := $(shell docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null | sed 's|^unix://||')
+DOCKER_SOCKET_PATH ?= $(if $(HOST_DOCKER_SOCKET_PATH),$(HOST_DOCKER_SOCKET_PATH),/var/run/docker.sock)
 
 ENV_ARGS :=
 
@@ -39,8 +42,9 @@ ifeq ($(IS_CI),true)
   TEST_RUN := docker run --rm $(ENV_ARGS) -v /var/run/docker.sock:/var/run/docker.sock $(ASTABENCH_TAG)
   BUILD_QUIET := --quiet
 else
+  # Added :z flag to Docker socket mount for SELinux compatibility
   LOCAL_MOUNTS := \
-    -v $(DOCKER_SOCKET_PATH):/var/run/docker.sock \
+    -v $(DOCKER_SOCKET_PATH):/var/run/docker.sock:z \
     -v $$(pwd)/pyproject.toml:/astabench/pyproject.toml:ro \
     -v $$(pwd)/astabench:/astabench/astabench \
     -v $$(pwd)/tests:/astabench/tests \
